@@ -1,248 +1,210 @@
-# Invoice Data Pdf Extractor
+# Amazon Invoice Data Extractor & Analytics Dashboard
 
-A Python script to extract specific attributes from PDF invoices using PyMuPDF and save them to CSV format.
+A complete solution for extracting data from Amazon invoice PDFs and visualizing business insights through an interactive web dashboard.
 
-## Features
+## 🌐 Live Demo
 
-Extracts the following attributes from a PDF invoice:
+**Analytics Dashboard**: [https://invoice-data-pdf-extractor.streamlit.app/](https://invoice-data-pdf-extractor.streamlit.app/)
 
-1. Order Number
-2. Order Date
-3. Place of Delivery
-4. Invoice Number
-5. Invoice Value
-6. Description (from table column)
-7. HSN Code (separated from description)
-8. Payment Transaction ID
-9. Mode of Payment
-10. Date & Time
-11. Shipping Address
+Try the live dashboard with sample data or upload your own extracted invoice CSV!
 
-## Installation
+## 📊 What It Does
 
-1. Install the required dependency:
+This project transforms Amazon order invoice PDFs into actionable business insights through a two-part workflow:
 
+### 1. PDF Invoice Extractor (Python Scripts)
+Processes Amazon invoice PDFs in batch and extracts structured data including:
+- Order Number, Invoice Number, Invoice Value
+- Product Description, HSN Code, ASIN, SKU
+- Payment Details (Transaction ID, Mode, Date & Time)
+- Shipping Address and Place of Delivery
+
+### 2. Analytics Dashboard (Web App)
+Upload the extracted CSV to visualize:
+- **Overview Metrics**: Total orders, revenue, data quality
+- **Geographic Analysis**: State-wise revenue with interactive charts (Bar/Pie/Treemap)
+- **Temporal Trends**: Monthly order volume and revenue tracking
+- **Interactive Visualizations**: Powered by Plotly with hover, zoom, and pan controls
+
+## 🚀 Quick Start
+
+### Extract Invoice Data
+
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-Or install PyMuPDF directly:
-
-```bash
-pip install PyMuPDF
-```
-
-## Usage
-
-### Single PDF File
-
-To extract data from a **single PDF file**, use:
-
+2. For a **single PDF**:
 ```bash
 python extract_invoice.py
 ```
 
-**Configuration:**
-
-- Open `extract_invoice.py` and modify the `pdf_file` variable to point to your PDF:
-  ```python
-  pdf_file = "invoice.pdf"  # Change to your PDF filename
-  ```
-- The script will extract data from page 2 by default
-- Output will be saved to `invoice_data.csv`
-
-### Multiple PDF Files (Batch Processing)
-
-To extract data from **all PDF files in a directory**, use:
-
+3. For **batch processing** (multiple PDFs):
 ```bash
 python extract_invoice_batch.py
 ```
 
-**Configuration:**
+### View Analytics
 
-- The script will automatically find all `.pdf` files in the current directory
-- Output will be saved to `all_invoices.csv` with one row per PDF
-- You can modify the script to specify a custom directory or list of files
+**Option 1: Use the Live Dashboard**
+- Visit [https://invoice-data-pdf-extractor.streamlit.app/](https://invoice-data-pdf-extractor.streamlit.app/)
+- Upload your `all_invoices.csv` file
+- Explore interactive visualizations
 
-## Output Format
-
-The script generates a CSV file with the following columns:
-
-- Order Number
-- Order Date
-- Place of Delivery
-- Invoice Number
-- Invoice Value
-- Description
-- HSN Code
-- Payment Transaction ID
-- Mode of Payment
-- Date & Time
-- Shipping Address
-
-## Supported Date/Time Formats
-
-The extractor is optimized for these specific formats:
-
-- **Order Date**: `DD.MM.YYYY` (e.g., 02.11.2025)
-- **Date & Time**: `DD/MM/YYYY,HH:MM:SS hrs` (e.g., 02/11/2025,12:58:05 hrs)
-- **Mode of Payment**: NetBanking, Credit Card, etc.
-
-## Description and HSN Code Extraction
-
-The script intelligently extracts product descriptions from table columns:
-
-- **Example**: "Amudham Naturals 100% Pure Ragi Flour, Traditional Indian Finger Millet Flour, No Added Preservatives, Gluten-Free, 1 kg | B0FW7291VR ( MS-H2GY-GWJX )"
-- **HSN Code**: Automatically separated from description (e.g., 11029090)
-
-## Customization
-
-### Change Page Number
-
-To extract from a different page, modify the `page_number` parameter:
-
-```python
-invoice_data = extract_invoice_data(pdf_file, page_number=3)  # Extract from page 3
-```
-
-### Enable/Disable Debug Mode
-
-Debug mode shows the raw extracted text and extraction details:
-
-```python
-debug_mode = True   # Enable debug output
-debug_mode = False  # Disable debug output
-```
-
-### Adjust Extraction Patterns
-
-If your PDF has a different format, you can modify the regex patterns in the script. Each field has multiple patterns to handle variations:
-
-```python
-# Example: Add a new pattern for Order Number
-order_patterns = [
-    r'Order\s+(?:Number|No\.?|#)\s*:?\s*([A-Z0-9\-]+)',
-    r'Order\s+ID\s*:?\s*([A-Z0-9\-]+)',
-    r'Your\s+Custom\s+Pattern\s*:?\s*([A-Z0-9\-]+)',  # Add your pattern
-]
-```
-
-## Troubleshooting
-
-### Issue: Some fields are not extracted
-
-**Solution 1:** Enable debug mode to see the raw text:
-
-```python
-debug_mode = True
-```
-
-Run the script and examine the "RAW TEXT FROM PAGE" section to see what text is available.
-
-**Solution 2:** Check the page number. The script defaults to page 2. If your data is on a different page:
-
-```python
-page_number = 3  # Change to the correct page
-```
-
-### Issue: Description is incomplete or incorrect
-
-**Solution:** The description extraction is optimized for table-based formats. If your PDF has a different layout:
-
-1. Enable debug mode
-2. Look at the "DESCRIPTION EXTRACTION DEBUG" section
-3. Adjust the stop keywords if needed:
-
-```python
-stop_keywords = ['TOTAL:', 'Subtotal', 'YourKeyword']
-```
-
-### Issue: Text extraction fails
-
-**Possible causes:**
-
-- The PDF is scanned (image-based) - PyMuPDF only works with text-based PDFs
-- The PDF is password-protected
-- The PDF has unusual encoding
-
-**Solution for scanned PDFs:** You would need OCR (Optical Character Recognition):
-
+**Option 2: Run Locally**
 ```bash
-pip install pytesseract pdf2image
-# Then use pytesseract to extract text from images
+streamlit run app.py
 ```
 
-### Issue: Wrong HSN code extracted
+## 📋 Features
 
-**Solution:** The script looks for patterns like "HSN:XXXXXXXX". If your PDF uses a different format:
+### PDF Extraction
+- Extracts 13+ fields from Amazon invoices
+- Handles batch processing of multiple PDFs
+- Intelligent description parsing (removes serial numbers, ASIN, SKU)
+- Supports various date/time formats
+- Debug mode for troubleshooting
 
+### Analytics Dashboard
+- **Professional UI**: Custom-designed interface with Inter font family
+- **Interactive Charts**: Plotly-powered visualizations
+- **Sample Data**: Built-in demo dataset for testing
+- **Responsive Design**: Works on desktop and mobile
+- **Light Mode**: Optimized for readability
+
+## 📁 Output Format
+
+The extractor generates CSV files with these columns:
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| PDF Filename | Source PDF file | invoice_001.pdf |
+| Order Number | Amazon order ID | 407-1234567-8901234 |
+| Order Date | Date of order | 02.11.2025 |
+| Place of Delivery | Delivery state | TAMIL NADU |
+| Invoice Number | Invoice ID | IN-BLR1-1234567 |
+| Invoice Value | Total amount | 1299.00 |
+| Description | Product description | Amudham Naturals 100% Pure Ragi Flour... |
+| HSN Code | Tax classification | 11029090 |
+| ASIN | Amazon product ID | B0FW7291VR |
+| SKU | Seller SKU | MS-H2GY-GWJX |
+| Payment Transaction ID | Payment reference | 1234567890 |
+| Mode of Payment | Payment method | NetBanking |
+| Date & Time | Transaction timestamp | 02/11/2025,12:58:05 hrs |
+| Shipping Address | Full delivery address | Name, Street, City... |
+
+## 🛠️ Configuration
+
+### Extraction Scripts
+
+**Change PDF directory** (in `extract_invoice_batch.py`):
 ```python
-# Modify the HSN extraction pattern
-hsn_match = re.search(r'HSN\s*Code\s*:?\s*(\d+)', line, re.IGNORECASE)
+directory_path = "/path/to/your/invoices"
 ```
 
-## File Structure
+**Change page number** (default is page 2):
+```python
+page_number = 2  # Adjust as needed
+```
+
+**Enable debug mode**:
+```python
+debug_mode = True  # Shows raw text and extraction details
+```
+
+### Dashboard
+
+The dashboard automatically processes uploaded CSV files. Configuration is handled via `.streamlit/config.toml` for theme settings.
+
+## 📊 Use Cases
+
+Perfect for Amazon sellers and business analysts who need to:
+- Track sales performance across different states/regions
+- Identify seasonal trends in orders
+- Monitor revenue growth month-over-month
+- Analyze product performance by ASIN/SKU
+- Generate reports for accounting and tax purposes
+- Make data-driven inventory and marketing decisions
+
+## 🔧 Troubleshooting
+
+### Extraction Issues
+
+**Fields not extracting?**
+1. Enable debug mode: `debug_mode = True`
+2. Check the "RAW TEXT FROM PAGE" output
+3. Verify the page number (default is page 2)
+4. Adjust regex patterns if your PDF format differs
+
+**Description incomplete?**
+- The extractor is optimized for Amazon's table format
+- Check the "DESCRIPTION EXTRACTION DEBUG" section
+- Modify `stop_keywords` if needed
+
+**Scanned/Image PDFs?**
+- PyMuPDF only works with text-based PDFs
+- For scanned PDFs, you'll need OCR (pytesseract)
+
+### Dashboard Issues
+
+**CSV upload fails?**
+- Ensure CSV has the expected column names
+- Check that dates are in DD.MM.YYYY format
+- Verify Invoice Value is numeric (no currency symbols in the CSV)
+
+## 📦 Dependencies
+
+**Extraction Scripts:**
+- PyMuPDF >= 1.23.0 (PDF text extraction)
+- Standard library: csv, re, os, glob
+
+**Analytics Dashboard:**
+- streamlit >= 1.41.0
+- pandas >= 2.1.0
+- plotly >= 5.18.0
+- matplotlib >= 3.8.0
+- seaborn >= 0.13.0
+
+## 📂 Project Structure
 
 ```
 .
 ├── extract_invoice.py          # Single PDF extraction
-├── extract_invoice_batch.py    # Batch processing for multiple PDFs
+├── extract_invoice_batch.py    # Batch processing
+├── app.py                      # Analytics dashboard
+├── analysis.py                 # Data analysis script
 ├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-├── invoice.pdf                 # Your input PDF (example)
-└── invoice_data.csv            # Output file (generated)
+├── .streamlit/
+│   └── config.toml            # Dashboard theme config
+└── README.md                   # This file
 ```
 
-## Advanced Usage
+## 🌟 Workflow
 
-### Custom Output Filename
+1. **Download** Amazon invoice PDFs
+2. **Extract** data using `extract_invoice_batch.py`
+3. **Upload** the generated CSV to the dashboard
+4. **Analyze** your business metrics and trends
+5. **Export** insights for reporting
 
-```python
-save_to_csv(invoice_data, 'my_custom_output.csv')
-```
+## 📝 Notes
 
-### Process Specific Files
+- Designed specifically for Amazon invoice format
+- Extracts from page 2 by default (most Amazon invoices)
+- Regex patterns may need adjustment for different formats
+- Dashboard runs on Streamlit Cloud for easy access
+- All data processing happens client-side (secure)
 
-Edit `extract_invoice_batch.py` and specify your files:
+## 🔗 Links
 
-```python
-pdf_files = [
-    "invoice_jan.pdf",
-    "invoice_feb.pdf",
-    "invoice_mar.pdf"
-]
-```
+- **Live Dashboard**: [https://invoice-data-pdf-extractor.streamlit.app/](https://invoice-data-pdf-extractor.streamlit.app/)
+- **GitHub Repository**: [Your repo URL]
 
-### Extract from First Page
+## 📄 License
 
-```python
-invoice_data = extract_invoice_data(pdf_file, page_number=1)
-```
+This project is provided as-is for invoice data extraction and analysis purposes.
 
-## Dependencies
+---
 
-- **PyMuPDF (fitz)**: PDF text extraction
-- **csv**: CSV file writing (Python standard library)
-- **re**: Regular expressions (Python standard library)
-
-## Notes
-
-- The script is designed for **text-based PDFs** only
-- For scanned/image PDFs, OCR (pytesseract) is required
-- The script extracts data from **page 2** by default
-- Regex patterns may need adjustment based on your specific PDF format
-- Debug mode helps identify extraction issues
-
-## Support
-
-If certain fields are not extracting correctly:
-
-1. Enable debug mode: `debug_mode = True`
-2. Check the raw text output
-3. Verify the page number
-4. Adjust regex patterns if needed
-
-## License
-
-This script is provided as-is for invoice data extraction purposes.
+**Made for Amudham Naturals** 📊
