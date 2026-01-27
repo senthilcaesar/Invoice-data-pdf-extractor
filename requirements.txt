@@ -1,0 +1,13 @@
+# Invoice Data Extractor - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# PyMuPDF (fitz) - PDF text extraction library
+# This is the main dependency for reading PDF files
+PyMuPDF>=1.23.0
+
+# Note: The following libraries are used but are part of Python's standard library
+# and do not need to be installed separately:
+# - csv (CSV file writing)
+# - re (Regular expressions for pattern matching)
+# - os (Operating system interface)
+# - pathlib (Object-oriented filesystem paths)
