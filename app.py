@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Page Configuration
 st.set_page_config(
@@ -64,12 +67,29 @@ def main():
     st.write("Upload your `all_invoices.csv` file to generate the analysis dashboard.")
 
     uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'])
-
+    
+    # Session state for sample data
+    if 'load_sample' not in st.session_state:
+        st.session_state.load_sample = False
+    
+    if st.button("Load Sample Data"):
+        st.session_state.load_sample = True
+        
+    # Determine which file to process
+    df = None
     if uploaded_file is not None:
-        with st.spinner('Processing data...'):
+        st.session_state.load_sample = False # Reset sample state if user uploads a file
+        with st.spinner('Processing uploaded data...'):
             df = load_and_process_data(uploaded_file)
+    elif st.session_state.load_sample:
+        try:
+            with st.spinner('Loading sample data...'):
+                df = load_and_process_data("all_invoices.csv")
+            st.info("Using sample data: `all_invoices.csv`")
+        except FileNotFoundError:
+            st.error("Sample file `all_invoices.csv` not found in directory.")
 
-        if df is not None:
+    if df is not None:
             # --- 1. BASIC DATA OVERVIEW ---
             st.divider()
             st.header("1. Basic Data Overview")
@@ -126,7 +146,58 @@ def main():
             
             with col_geo2:
                 st.subheader("Revenue by State")
-                st.bar_chart(state_analysis['Total Revenue'])
+                
+                # Chart Type Selection
+                chart_type = st.radio(
+                    "Select Chart Type:",
+                    ["Bar Chart (Best for Comparison)", "Pie Chart (Best for Share)", "Treemap (Best for Hierarchy)"],
+                    horizontal=True,
+                    label_visibility="collapsed"
+                )
+                
+                # Check if there are too many states for Pie/Treemap
+                plot_data_df = state_analysis.reset_index()
+                
+                if "Bar" in chart_type:
+                    # Horizontal Bar Chart
+                    fig = px.bar(
+                        plot_data_df.sort_values('Total Revenue', ascending=True), 
+                        x='Total Revenue', 
+                        y='State',
+                        orientation='h',
+                        text_auto='.2s',
+                        color='Total Revenue',
+                        color_continuous_scale='Blues'
+                    )
+                    fig.update_layout(showlegend=False, height=400)
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                elif "Pie" in chart_type:
+                    # Logic to group smaller segments for Pie Chart
+                    if len(plot_data_df) > 10:
+                        top_9 = plot_data_df.nlargest(9, 'Total Revenue')
+                        others_val = plot_data_df.nsmallest(len(plot_data_df) - 9, 'Total Revenue')['Total Revenue'].sum()
+                        others_row = pd.DataFrame({'State': ['OTHERS'], 'Order Count': [0], 'Total Revenue': [others_val]})
+                        plot_data_df = pd.concat([top_9, others_row])
+                    
+                    fig = px.pie(
+                        plot_data_df, 
+                        values='Total Revenue', 
+                        names='State',
+                        hole=0.4,
+                        color_discrete_sequence=px.colors.sequential.RdBu
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                elif "Treemap" in chart_type:
+                    fig = px.treemap(
+                        plot_data_df, 
+                        path=['State'], 
+                        values='Total Revenue',
+                        color='Total Revenue',
+                        color_continuous_scale='Greens'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
 
             # --- 4. TEMPORAL ANALYSIS ---
             st.divider()
@@ -154,56 +225,77 @@ def main():
             st.divider()
             st.header("5. Monthly Orders & Revenue Trend")
             
-            # Prepare Data for Plotting
-            month_labels = month_labels_idx
-            
-            # Create simple line chart using Matplotlib logic from analysis.py
-            fig, ax1 = plt.subplots(figsize=(14, 7))
+            # Create Interactive Dual-Axis Chart with Plotly
+            fig = go.Figure()
 
-            # Plot orders on left axis (BLUE)
-            color1 = 'blue'
-            ax1.set_xlabel('Month', fontsize=13, fontweight='bold')
-            ax1.set_ylabel('Total Number of Orders', fontsize=13, fontweight='bold', color=color1)
-            line1 = ax1.plot(range(len(monthly_analysis)), monthly_analysis['Order Count'], 
-                             color=color1, marker='o', linewidth=3, markersize=12, 
-                             label='Order Count')
-            ax1.tick_params(axis='y', labelcolor=color1, labelsize=11)
-            ax1.set_xticks(range(len(monthly_analysis)))
-            ax1.set_xticklabels(month_labels, fontsize=12, fontweight='bold', rotation=45)
-            ax1.grid(True, alpha=0.3, linestyle='--')
+            # Line Chart for Order Count (Primary Y)
+            fig.add_trace(
+                go.Scatter(
+                    x=month_labels_idx,
+                    y=monthly_analysis['Order Count'],
+                    name="Order Count",
+                    line=dict(color='navy', width=3),
+                    marker=dict(size=8),
+                    mode='lines+markers+text',
+                    text=[str(int(v)) for v in monthly_analysis['Order Count']],
+                    textposition="top center",
+                    yaxis='y1'
+                )
+            )
 
-            # Add value labels for orders
-            for i, v in enumerate(monthly_analysis['Order Count']):
-                ax1.text(i, v + (v*0.05), str(int(v)), ha='center', fontsize=10, 
-                         fontweight='bold', color=color1,
-                         bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
-                                  edgecolor=color1, linewidth=1))
+            # Line Chart for Revenue (Secondary Y)
+            fig.add_trace(
+                go.Scatter(
+                    x=month_labels_idx,
+                    y=monthly_analysis['Total Revenue'],
+                    name="Total Revenue",
+                    line=dict(color='darkorange', width=3),
+                    marker=dict(size=8),
+                    mode='lines+markers+text',
+                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Total Revenue']],
+                    textposition="bottom center",
+                    yaxis='y2'
+                )
+            )
 
-            # Plot revenue on right axis (ORANGE)
-            ax2 = ax1.twinx()
-            color2 = 'darkorange'
-            ax2.set_ylabel('Total Invoice Sum (₹)', fontsize=13, fontweight='bold', color=color2)
-            line2 = ax2.plot(range(len(monthly_analysis)), monthly_analysis['Total Revenue'], 
-                             color=color2, marker='s', linewidth=3, markersize=12, 
-                             label='Total Revenue')
-            ax2.tick_params(axis='y', labelcolor=color2, labelsize=11)
+            # Layout Configuration
+            fig.update_layout(
+                template="plotly_white",
+                title=dict(
+                    text='Monthly Orders & Revenue Trend', 
+                    font=dict(size=20, color='#0e3b5e')
+                ),
+                xaxis=dict(
+                    title=None, 
+                    showgrid=False
+                ),
+                yaxis=dict(
+                    title='Order Count',
+                    titlefont=dict(color='navy'),
+                    tickfont=dict(color='navy'),
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.05)'
+                ),
+                yaxis2=dict(
+                    title='Revenue (₹)',
+                    titlefont=dict(color='darkorange'),
+                    tickfont=dict(color='darkorange'),
+                    overlaying='y',
+                    side='right',
+                    showgrid=False
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                hovermode="x unified",
+                height=500
+            )
 
-            # Add value labels for revenue
-            for i, v in enumerate(monthly_analysis['Total Revenue']):
-                # Offset label slightly to avoid overlap
-                ax2.text(i, v - (v*0.1), f'₹{v:,.0f}', ha='center', fontsize=10, 
-                         fontweight='bold', color=color2,
-                         bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
-                                  edgecolor=color2, linewidth=1))
-
-            plt.title('Amudham Naturals - Monthly Orders and Revenue', fontsize=16, fontweight='bold', pad=20)
-            
-            # Legend
-            lines1, labels1 = ax1.get_legend_handles_labels()
-            lines2, labels2 = ax2.get_legend_handles_labels()
-            ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=10, frameon=True)
-
-            st.pyplot(fig)
+            st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
     main()
