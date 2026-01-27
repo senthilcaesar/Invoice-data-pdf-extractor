@@ -16,19 +16,97 @@ st.set_page_config(
 # Custom Styling
 st.markdown("""
 <style>
-    .main {
-        padding: 0rem 1rem;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    /* Global Settings */
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
-    .stMetric {
-        background-color: #f0f2f6;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    
+    /* Remove Streamlit Branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Custom Navbar */
+    .navbar {
+        background-color: #0e3b5e;
+        padding: 1.5rem 2rem;
+        margin: -4rem -4rem 2rem -4rem; /* Negative margins to span full width */
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    h1, h2, h3 {
+    .navbar-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .navbar-subtitle {
+        font-size: 0.875rem;
+        color: #e2e8f0;
+        font-weight: 400;
+    }
+    
+    /* Metric Cards Styling */
+    div[data-testid="metric-container"] {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    div[data-testid="metric-container"] > label {
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+    div[data-testid="metric-container"] > div[data-testid="stMetricValue"] {
+        color: #0e3b5e;
+        font-weight: 700;
+        font-size: 1.75rem;
+    }
+
+    /* Section Headers */
+    h2 {
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 1.5rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 0.5rem;
+    }
+    h3 {
+        color: #334155;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    /* Upload Section Styling */
+    .uploadedFileName { 
+        font-weight: 600; 
         color: #0e3b5e;
     }
+    div[data-testid="stFileUploader"] {
+        background-color: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px dashed #cbd5e1;
+    }
 </style>
+
+<div class="navbar">
+    <div class="navbar-title">📊 Amudham Naturals</div>
+    <div class="navbar-subtitle">Analytics Dashboard</div>
+</div>
 """, unsafe_allow_html=True)
 
 def load_and_process_data(uploaded_file):
@@ -63,8 +141,7 @@ def load_and_process_data(uploaded_file):
         return None
 
 def main():
-    st.title("📊 Amudham Naturals Invoice Analytics")
-    st.write("Upload your `all_invoices.csv` file to generate the analysis dashboard.")
+    st.write("Upload your `all_invoices.csv` file below to view the analytics.")
 
     uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'])
     
@@ -266,19 +343,17 @@ def main():
                     font=dict(size=20, color='#0e3b5e')
                 ),
                 xaxis=dict(
-                    title=None, 
+                    title=dict(text=''), 
                     showgrid=False
                 ),
                 yaxis=dict(
-                    title='Order Count',
-                    titlefont=dict(color='navy'),
+                    title=dict(text='Order Count', font=dict(color='navy')),
                     tickfont=dict(color='navy'),
                     showgrid=True,
                     gridcolor='rgba(0,0,0,0.05)'
                 ),
                 yaxis2=dict(
-                    title='Revenue (₹)',
-                    titlefont=dict(color='darkorange'),
+                    title=dict(text='Revenue (₹)', font=dict(color='darkorange')),
                     tickfont=dict(color='darkorange'),
                     overlaying='y',
                     side='right',
