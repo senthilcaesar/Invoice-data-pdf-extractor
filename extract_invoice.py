@@ -384,7 +384,7 @@ def extract_invoice_data(pdf_path, page_number=2, debug=False):
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                invoice_data['Invoice Value'] = '₹' + match.group(1).strip()
+                invoice_data['Invoice Value'] = match.group(1).strip()
                 if debug: print(f"✓ Invoice Value: {invoice_data['Invoice Value']}")
                 break
         if debug and not invoice_data['Invoice Value']:
@@ -558,7 +558,7 @@ def main():
         print(f"{status} {key:25s}: {display_value}")
     
     # Save to CSV
-    save_to_csv(invoice_data, 'invoice_data.csv')
+    save_to_csv(invoice_data, '/Users/senthilpalanivelu/Desktop/google_analytics/invoice_data.csv')
     
     print("\nTo process multiple PDFs, uncomment the lines below in the code:")
     print("  pdf_files = ['invoice1.pdf', 'invoice2.pdf', 'invoice3.pdf']")

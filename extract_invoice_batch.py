@@ -387,7 +387,7 @@ def extract_invoice_data(pdf_path, page_number=2, debug=False):
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                invoice_data['Invoice Value'] = '₹' + match.group(1).strip()
+                invoice_data['Invoice Value'] = match.group(1).strip()
                 if debug: print(f"✓ Invoice Value: {invoice_data['Invoice Value']}")
                 break
         if debug and not invoice_data['Invoice Value']:
@@ -586,7 +586,7 @@ def main():
     
     # Save all data to CSV
     print("\n" + "="*80)
-    output_file = 'all_invoices.csv'
+    output_file = '/Users/senthilpalanivelu/Desktop/google_analytics/all_invoices.csv'
     save_to_csv(all_data, output_file)
     print(f"\n✓ Processed {len(all_data)} invoice(s)")
     print(f"✓ Results saved to: {output_file}")
