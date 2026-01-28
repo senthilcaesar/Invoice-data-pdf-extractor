@@ -97,13 +97,13 @@ Shipping is calculated based on the **Total Order Weight** using a tiered fee st
 Profit is calculated for each order by matching product descriptions against a master cost matrix (`df_data`).
 
 **The Multi-Step Formula:**
-1.  **Product Matching**: The system identifies the specific product and retrieves its specific **Purchase**, **Referral**, and **Packing** costs.
-2.  **Multi-Item Support**: If a description contains multiple distinct products, the system sums the margins for all unique matches.
-3.  **Revenue Generation**: `SP (before GST) * Quantity`.
-4.  **Base Cost Calculation**: `(Purchase + Referral + Packing) * Quantity`.
+1.  **Product Discovery**: The system identifies every product mentioned in the description string. (Note: Serial numbers like `| 2` or `| 3` are treated as text artifacts and **ignored** as quantity multipliers).
+2.  **Component Summation**: It sums the **Purchase**, **Referral**, and **Packing** costs for all unique items identified in that description.
+3.  **Quantity Application**: The sum above is multiplied by the actual value in the row-level **Qty** column (the primary multiplier).
+4.  **Revenue Generation**: `(Sum of SP before GST for all items) * Qty`.
 5.  **Final Net Profit**:
     ```text
-    Profit = Revenue - (Base Costs + Dynamic Shipping Cost)
+    Profit = Total Revenue - (Total Base Costs + Dynamic Shipping Cost)
     ```
 
 ---

@@ -165,9 +165,12 @@ def calculate_profit(description, qty):
     
     for name in sorted_names:
         if name in remaining_desc:
+            # Count how many times this product appears in the string
+            # This handles cases where multiple items are listed in one row
             count = remaining_desc.count(name)
             matched_products.extend([product_costs[name]] * count)
-            remaining_desc = remaining_desc.replace(name, "")
+            # Remove to prevent double-matching with shorter names
+            remaining_desc = remaining_desc.replace(name, " ")
     
     if not matched_products:
         return 0

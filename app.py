@@ -177,9 +177,12 @@ def calculate_profit_internal(description, qty):
     
     for name in sorted_names:
         if name in remaining_desc:
+            # Count how many times this product appears in the string
+            # This handles cases where multiple items are listed in one row
             count = remaining_desc.count(name)
             matched_products.extend([product_costs[name]] * count)
-            remaining_desc = remaining_desc.replace(name, "")
+            # Remove to prevent double-matching with shorter names
+            remaining_desc = remaining_desc.replace(name, " ")
             
     if not matched_products: return 0
     
@@ -521,5 +524,21 @@ def main():
             display_df['Total Profit (₹)'] = display_df['Total Profit (₹)'].map('₹{:,.2f}'.format)
             
             st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+            # --- 8. MASTER DATA REFERENCE ---
+            st.divider()
+            with st.expander("📊 8. Product Cost & Reference Master Data", expanded=False):
+                st.markdown("""
+                This table shows the unit costs, referral fees, and selling prices used to calculate 
+                the profit margins for each product identified in your invoices.
+                """)
+                # Format currency for display
+                master_display = df_data_internal.copy()
+                currency_cols = ["Purchase cost", "Referral fee", "Packing cost", "Total Cost", "SP before GST", "Profit", "GST", "Final SP"]
+                for col in currency_cols:
+                    if col in master_display.columns:
+                        master_display[col] = master_display[col].map('₹{:,.2f}'.format)
+                
+                st.dataframe(master_display, use_container_width=True, hide_index=True)
 if __name__ == "__main__":
     main()
