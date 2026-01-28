@@ -73,6 +73,41 @@ streamlit run app.py
 - **Responsive Design**: Works on desktop and mobile
 - **Light Mode**: Optimized for readability
 
+## 📈 Profit & Shipping Calculation Logic
+
+The dashboard implements a sophisticated profitability engine that accounts for variable product costs and non-linear shipping rates.
+
+### 1. Dynamic Shipping Cost Calculation
+Shipping is calculated based on the **Total Order Weight** using a tiered fee structure:
+
+1.  **Weight Extraction**: The system automatically scans product descriptions for weight markers (e.g., `(350g)`, `500 g`, `1kg`).
+2.  **Total Weight Calculation**: `Item Weight * Quantity (Qty)`.
+3.  **Tiered Pricing Application**:
+    | Weight Tier | Cost | Formula Details |
+    | :--- | :--- | :--- |
+    | **0 - 500g** | ₹76 | Flat rate |
+    | **500g - 1kg** | ₹100 | Flat rate |
+    | **1kg - 2kg** | ₹143 | Flat rate |
+    | **2kg - 5kg** | ₹143 + (₹40/kg) | `143 + ceil(Weight - 2.0) * 40` |
+    | **Above 5kg** | ₹263 + (₹26/kg) | `263 + ceil(Weight - 5.0) * 26` |
+
+*Note: The script uses `math.ceil()` on additional weight, so partial kilograms are rounded up (e.g., 2.2kg is charged as 3kg).*
+
+### 2. Profit Margin Calculation
+Profit is calculated for each order by matching product descriptions against a master cost matrix (`df_data`).
+
+**The Multi-Step Formula:**
+1.  **Product Matching**: The system identifies the specific product and retrieves its specific **Purchase**, **Referral**, and **Packing** costs.
+2.  **Multi-Item Support**: If a description contains multiple distinct products, the system sums the margins for all unique matches.
+3.  **Revenue Generation**: `SP (before GST) * Quantity`.
+4.  **Base Cost Calculation**: `(Purchase + Referral + Packing) * Quantity`.
+5.  **Final Net Profit**:
+    ```text
+    Profit = Revenue - (Base Costs + Dynamic Shipping Cost)
+    ```
+
+---
+
 ## 📁 Output Format
 
 The extractor generates CSV files with these columns:

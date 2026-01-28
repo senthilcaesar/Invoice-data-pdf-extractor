@@ -266,6 +266,70 @@ def extract_description_hsn_asin_sku(text, debug=False):
     return description, hsn_code, asin, sku
 
 
+def extract_qty(text, debug=False, hsn_code=None, asin=None):
+    """
+    Extract quantity (Qty) from the invoice table.
+    Uses a 'price-sandwich' strategy: looking for an integer between two currency amounts.
+    """
+    qty = ""
+    
+    if debug:
+        print("\n" + "-"*80)
+        print("QTY EXTRACTION DEBUG:")
+        print(f"Context - HSN: {hsn_code}, ASIN: {asin}")
+        print("-"*80)
+    
+    # Strategy 1: Price-Sandwich Pattern (MOST RELIABLE)
+    # Looking for: ₹UnitPrice Qty ₹NetAmount
+    # Example: ₹189.52 8 ₹1,516.16
+    price_pattern = r'₹\s*[\d,]+\.\d{2}\s+(\d{1,3})\s+₹\s*[\d,]+\.\d{2}'
+    match = re.search(price_pattern, text)
+    if match:
+        qty = match.group(1)
+        if debug: print(f"Found Qty '{qty}' using Price-Sandwich pattern")
+    
+    # Strategy 2: Look for numbers specifically after HSN or ASIN (LANDMARK)
+    if not qty:
+        search_terms = []
+        if hsn_code: search_terms.append(hsn_code)
+        if asin: search_terms.append(asin)
+        
+        for term in search_terms:
+            pos = text.find(term)
+            if pos != -1:
+                after_text = text[pos + len(term):pos + len(term) + 150]
+                # Filter for standalone integers 1-3 digits, not followed by . or , (to avoid decimals)
+                matches = re.finditer(r'(?<![.,\d])\b(\d{1,3})\b(?![.,\d])', after_text)
+                for m in matches:
+                    val = m.group(1)
+                    if val != term:
+                        qty = val
+                        if debug: print(f"Found Qty '{qty}' following landmark '{term}'")
+                        break
+                if qty: break
+
+    # Strategy 3: Find "Qty" column header and get the value below it
+    if not qty:
+        qty_patterns = [
+            r'Qty\s*:?\s*(\d+)',
+            r'Quantity\s*:?\s*(\d+)',
+            r'\bQty\b[^\d]*(\d+)',
+        ]
+        for pattern in qty_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                qty = match.group(1)
+                if debug: print(f"Found Qty using 'Qty' header pattern: {qty}")
+                break
+    
+    if debug:
+        print("-"*80)
+        print(f"FINAL Qty: {qty}")
+        print("-"*80 + "\n")
+    
+    return qty
+
+
 def extract_invoice_data(pdf_path, page_number=2, debug=False):
     """
     Extract invoice attributes from PDF.
@@ -286,6 +350,7 @@ def extract_invoice_data(pdf_path, page_number=2, debug=False):
         'Invoice Number': '',
         'Invoice Value': '',
         'Description': '',
+        'Qty': '',
         'HSN Code': '',
         'ASIN': '',
         'SKU': '',
@@ -400,12 +465,20 @@ def extract_invoice_data(pdf_path, page_number=2, debug=False):
         invoice_data['ASIN'] = asin
         invoice_data['SKU'] = sku
         
+        # Extract Qty
+        qty = extract_qty(text, debug, hsn_code=hsn_code, asin=asin)
+        invoice_data['Qty'] = qty
+        
         if not debug:
             # Only print in non-debug mode
             if description:
                 print(f"✓ Description: {description}")
             else:
                 print("✗ Description: Not found")
+            if qty:
+                print(f"✓ Qty: {qty}")
+            else:
+                print("✗ Qty: Not found")
             if hsn_code:
                 print(f"✓ HSN Code: {hsn_code}")
             else:
@@ -571,7 +644,7 @@ def main():
         
         # Show key fields
         fields_to_show = ['Order Number', 'Invoice Number', 'Invoice Value', 
-                         'Description', 'ASIN', 'SKU', 'HSN Code']
+                         'Description', 'Qty', 'ASIN', 'SKU', 'HSN Code']
         
         for key in fields_to_show:
             value = data.get(key, '')
