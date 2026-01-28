@@ -75,15 +75,33 @@ streamlit run app.py
 
 ## 📈 Profit & Shipping Calculation Logic
 
-The dashboard implements a sophisticated profitability engine that accounts for variable product costs and non-linear shipping rates.
+The dashboard implements a sophisticated profitability engine. Profit is calculated using the following primary formula:
 
-### 1. Dynamic Shipping Cost Calculation
-Shipping is calculated based on the **Total Order Weight** using a tiered fee structure:
+```text
+Profit = Total Revenue - (Total Base Costs + Dynamic Shipping Cost)
+```
 
-1.  **Weight Extraction**: The system automatically scans product descriptions for weight markers (e.g., `(350g)`, `500 g`, `1kg`).
-2.  **Total Weight Calculation**: `Item Weight * Quantity (Qty)`.
-3.  **Tiered Pricing Application**:
-    | Weight Tier | Cost | Formula Details |
+### 1. How Each Variable is Computed
+
+#### **A. Total Revenue**
+Revenue is calculated based on the **Selling Price (SP) before GST** for all products identified in the order description, multiplied by the quantity.
+*   **Formula**: `(Sum of Unit SP before GST) * Quantity (Qty)`
+*   **Source**: SP values are retrieved from the internal master data based on product name matching.
+
+#### **B. Total Base Costs**
+This includes all fixed costs associated with the physical product and the sale transaction.
+*   **Formula**: `(Purchase Cost + Referral Fee + Packing Cost) * Quantity (Qty)`
+*   **Components**: 
+    *   **Purchase Cost**: The cost at which the item was bought/manufactured.
+    *   **Referral Fee**: Marketplace commission (e.g., Amazon referral fees).
+    *   **Packing Cost**: Cost of materials and labor for packaging.
+
+#### **C. Dynamic Shipping Cost**
+Shipping is **not** a simple flat fee per item. It is calculated dynamically based on the **Total Weight** of the entire order.
+*   **Weight Extraction**: The system scans product descriptions for weight markers (e.g., `1kg`, `500g`).
+*   **Total weight**: `Unit Weight * Quantity (Qty)`.
+*   **Shipping Tiers**:
+    | Total Order Weight | Shipping Cost | Calculation Logic |
     | :--- | :--- | :--- |
     | **0 - 500g** | ₹76 | Flat rate |
     | **500g - 1kg** | ₹100 | Flat rate |
@@ -91,20 +109,31 @@ Shipping is calculated based on the **Total Order Weight** using a tiered fee st
     | **2kg - 5kg** | ₹143 + (₹40/kg) | `143 + ceil(Weight - 2.0) * 40` |
     | **Above 5kg** | ₹263 + (₹26/kg) | `263 + ceil(Weight - 5.0) * 26` |
 
-*Note: The script uses `math.ceil()` on additional weight, so partial kilograms are rounded up (e.g., 2.2kg is charged as 3kg).*
+---
 
-### 2. Profit Margin Calculation
-Profit is calculated for each order by matching product descriptions against a master cost matrix (`df_data`).
+### 2. Practical Example
 
-**The Multi-Step Formula:**
-1.  **Product Discovery**: The system identifies every product mentioned in the description string. (Note: Serial numbers like `| 2` or `| 3` are treated as text artifacts and **ignored** as quantity multipliers).
-2.  **Component Summation**: It sums the **Purchase**, **Referral**, and **Packing** costs for all unique items identified in that description.
-3.  **Quantity Application**: The sum above is multiplied by the actual value in the row-level **Qty** column (the primary multiplier).
-4.  **Revenue Generation**: `(Sum of SP before GST for all items) * Qty`.
-5.  **Final Net Profit**:
-    ```text
-    Profit = Total Revenue - (Total Base Costs + Dynamic Shipping Cost)
-    ```
+Let's calculate the profit for an order of **2 units** of **"Amudham Naturals Raw Peanuts, 1kg Pack"**.
+
+**1. Product Data (per unit):**
+- **SP before GST**: ₹286
+- **Purchase Cost**: ₹130
+- **Referral Fee**: ₹7.08
+- **Packing Cost**: ₹20
+- **Unit Weight**: 1.0 kg
+
+**2. Variable Calculations:**
+- **Total Revenue**: `₹286 * 2` = **₹572.00**
+- **Total Base Costs**: `(₹130 + ₹7.08 + ₹20) * 2` = `₹157.08 * 2` = **₹314.16**
+- **Total Weight**: `1.0kg * 2` = **2.0 kg**
+- **Dynamic Shipping Cost**: (For 2.0kg tier) = **₹143.00**
+
+**3. Final Profit Calculation:**
+- `Profit = ₹572.00 - (₹314.16 + ₹143.00)`
+- `Profit = ₹572.00 - ₹457.16`
+- **Resulting Profit = ₹114.84**
+
+---
 
 ---
 
