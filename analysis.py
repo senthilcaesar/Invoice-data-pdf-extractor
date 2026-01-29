@@ -45,7 +45,7 @@ columns = [
 
 df_data = pd.DataFrame(data, columns=columns)
 
-df = pd.read_csv("/Users/senthilpalanivelu/Desktop/google_analytics/all_invoices.csv")
+df = pd.read_csv("/Users/senthilpalanivelu/Desktop/google_analytics/new_invoices.csv")
 
 print("1. BASIC DATA OVERVIEW")
 print("-"*80)
@@ -69,10 +69,14 @@ df['Order Date'] = pd.to_datetime(df['Order Date'], format='%d.%m.%Y', errors='c
 print(f"✓ Order Date converted to datetime")
 
 # Clean Invoice Value
-df['Invoice Value'] = pd.to_numeric(
-    df['Invoice Value'].str.replace(',', '', regex=False),
-    errors='coerce'
-)
+# Only apply string replacement if the column contains strings
+if df['Invoice Value'].dtype == 'object':
+    df['Invoice Value'] = pd.to_numeric(
+        df['Invoice Value'].str.replace(',', '', regex=False),
+        errors='coerce'
+    )
+else:
+    df['Invoice Value'] = pd.to_numeric(df['Invoice Value'], errors='coerce')
 print(f"✓ Invoice Value converted to numeric")
 
 # Extract date components
