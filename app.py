@@ -45,10 +45,26 @@ st.markdown("""
         font-weight: 700;
         letter-spacing: 0.5px;
     }
+    .navbar-tagline {
+        font-size: 0.875rem;
+        color: #ccd6e0;
+        font-weight: 400;
+        margin-top: 4px;
+        max-width: 700px;
+        line-height: 1.4;
+    }
     .navbar-subtitle {
         font-size: 0.875rem;
         color: #e2e8f0;
+        font-weight: 600;
+        text-align: right;
+    }
+    .navbar-version {
+        font-size: 0.7rem;
+        color: #94a3b8;
         font-weight: 400;
+        text-align: right;
+        margin-top: 2px;
     }
     
     /* Metric Cards Styling */
@@ -77,13 +93,15 @@ st.markdown("""
 
     /* Section Headers */
     h2 {
-        color: #1e293b;
+        color: #0e3b5e;
         font-weight: 700;
-        font-size: 1.5rem;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #f1f5f9;
-        padding-bottom: 0.5rem;
+        font-size: 1.6rem;
+        margin-top: 3rem;
+        margin-bottom: 1.5rem;
+        padding: 10px 0px 10px 15px;
+        background: linear-gradient(90deg, #f8fafc 0%, rgba(255,255,255,0) 100%);
+        border-left: 5px solid #f59e0b; /* Distinct Orange Accent */
+        border-bottom: none;
     }
     h3 {
         color: #334155;
@@ -107,8 +125,17 @@ st.markdown("""
 
 st.markdown("""
 <div class="navbar">
-    <div class="navbar-title">📊 Amudham Naturals</div>
-    <div class="navbar-subtitle">Analytics Dashboard</div>
+    <div class="navbar-left">
+        <div class="navbar-title">📊 Amudham Naturals</div>
+        <div class="navbar-tagline">
+            Turn Amazon invoice data into powerful insights. This application automates data extraction 
+            and provides an interactive dashboard to instantly track growth, geographical demand, and profitability.
+        </div>
+    </div>
+    <div class="navbar-right">
+        <div class="navbar-subtitle">Business Intelligence Portal</div>
+        <div class="navbar-version">v1.0.0</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
