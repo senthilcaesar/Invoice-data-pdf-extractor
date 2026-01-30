@@ -219,10 +219,42 @@ def load_and_process_data(uploaded_file):
         df['DayOfWeek'] = df['Order Date'].dt.day_name()
         
         # 4. Clean Place of Delivery
+        states_map = {
+            'ANDHRA PRADESH': 'Andhra Pradesh', 'ARUNACHAL PRADESH': 'Arunachal Pradesh',
+            'ASSAM': 'Assam', 'BIHAR': 'Bihar', 'CHHATTISGARH': 'Chhattisgarh',
+            'GOA': 'Goa', 'GUJARAT': 'Gujarat', 'HARYANA': 'Haryana',
+            'HIMACHAL PRADESH': 'Himachal Pradesh', 'JHARKHAND': 'Jharkhand',
+            'KARNATAKA': 'Karnataka', 'KERALA': 'Kerala', 'MADHYA PRADESH': 'Madhya Pradesh',
+            'MAHARASHTRA': 'Maharashtra', 'MANIPUR': 'Manipur', 'MEGHALAYA': 'Meghalaya',
+            'MIZORAM': 'Mizoram', 'NAGALAND': 'Nagaland', 'ODISHA': 'Odisha',
+            'PUNJAB': 'Punjab', 'RAJASTHAN': 'Rajasthan', 'SIKKIM': 'Sikkim',
+            'TAMIL NADU': 'Tamil Nadu', 'TAMILNADU': 'Tamil Nadu', 'TAMIL NADU ': 'Tamil Nadu',
+            'TELANGANA': 'Telangana', 'TRIPURA': 'Tripura', 'UTTAR PRADESH': 'Uttar Pradesh',
+            'UTTARAKHAND': 'Uttarakhand', 'WEST BENGAL': 'West Bengal',
+            # Union Territories
+            'ANDAMAN AND NICOBAR ISLANDS': 'Andaman and Nicobar Islands',
+            'CHANDIGARH': 'Chandigarh', 'DADRA AND NAGAR HAVELI AND DAMAN AND DIU': 'Dadra and Nagar Haveli and Daman and Diu',
+            'DELHI': 'Delhi', 'JAMMU AND KASHMIR': 'Jammu and Kashmir',
+            'LADAKH': 'Ladakh', 'LAKSHADWEEP': 'Lakshadweep', 'PUDUCHERRY': 'Puducherry'
+        }
+        
+        def normalize_state(val):
+            val_str = str(val).upper().strip()
+            # Direct mapping
+            if val_str in states_map:
+                return states_map[val_str]
+            # Search within string if not a direct match (handles noisy address strings)
+            for state_key in states_map.keys():
+                if state_key in val_str:
+                    return states_map[state_key]
+            return "Unknown"
+
         if 'Place of Delivery' in df.columns:
-            df['State'] = df['Place of Delivery'].astype(str).str.strip().str.upper()
+            df['State'] = df['Place of Delivery'].apply(normalize_state)
+        elif 'State' in df.columns:
+            df['State'] = df['State'].apply(normalize_state)
         else:
-            df['State'] = "UNKNOWN"
+            df['State'] = "Unknown"
             
         # 5. Clean Qty and Calculate Profit
         df['Qty'] = pd.to_numeric(df['Qty'], errors='coerce').fillna(1).astype(int)
@@ -306,10 +338,25 @@ def main():
             st.divider()
             st.header("3. Geographical Analysis")
             
+            # All India States and UTs for complete map display
+            all_india_states = [
+                'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+                'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+                'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+                'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
+                'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
+                'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands',
+                'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+                'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+            ]
+            
             state_analysis = df.groupby('State').agg({
                 'Invoice Value': ['count', 'sum']
             }).round(2)
             state_analysis.columns = ['Order Count', 'Total Revenue']
+            
+            # Reindex to include all states and fill with 0
+            state_analysis = state_analysis.reindex(all_india_states).fillna(0)
             state_analysis = state_analysis.sort_values('Total Revenue', ascending=False)
 
             col_geo1, col_geo2 = st.columns([1, 1])
@@ -323,7 +370,7 @@ def main():
                 # Chart Type Selection
                 chart_type = st.radio(
                     "Select Chart Type:",
-                    ["Bar Chart (Best for Comparison)", "Pie Chart (Best for Share)", "Treemap (Best for Hierarchy)"],
+                    ["Map (Interactive)", "Bar Chart", "Pie Chart"],
                     horizontal=True,
                     label_visibility="collapsed"
                 )
@@ -331,10 +378,50 @@ def main():
                 # Check if there are too many states for Pie/Treemap
                 plot_data_df = state_analysis.reset_index()
                 
-                if "Bar" in chart_type:
-                    # Horizontal Bar Chart
+                if "Map" in chart_type:
+                    # Choropleth Map of India
+                    geojson_url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+                    
+                    fig = px.choropleth(
+                        plot_data_df,
+                        geojson=geojson_url,
+                        featureidkey='properties.ST_NM',
+                        locations='State',
+                        color='Order Count',
+                        hover_name='State',
+                        hover_data={'Order Count': True, 'Total Revenue': ':₹,.2f'},
+                        color_continuous_scale=px.colors.sequential.Blues,
+                        range_color=[0, plot_data_df['Order Count'].max()],
+                        labels={'Order Count': 'Orders'}
+                    )
+                    
+                    fig.update_geos(
+                        visible=False, 
+                        resolution=50,
+                        showcountries=True, 
+                        countrycolor="RebeccaPurple",
+                        fitbounds="locations"
+                    )
+                    
+                    fig.update_layout(
+                        margin={"r":0,"t":0,"l":0,"b":0},
+                        height=500,
+                        coloraxis_colorbar=dict(
+                            title="Orders",
+                            thicknessmode="pixels", thickness=15,
+                            lenmode="pixels", len=200,
+                            yanchor="top", y=1,
+                            ticks="outside"
+                        )
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                elif "Bar" in chart_type:
+                    # Horizontal Bar Chart - Filter out states with no orders
+                    bar_plot_df = plot_data_df[plot_data_df['Order Count'] > 0].sort_values('Total Revenue', ascending=True)
+                    
                     fig = px.bar(
-                        plot_data_df.sort_values('Total Revenue', ascending=True), 
+                        bar_plot_df, 
                         x='Total Revenue', 
                         y='State',
                         orientation='h',
@@ -346,29 +433,22 @@ def main():
                     st.plotly_chart(fig, use_container_width=True)
                     
                 elif "Pie" in chart_type:
+                    # Filter out states with no orders for Pie Chart
+                    pie_plot_df = plot_data_df[plot_data_df['Order Count'] > 0]
+                    
                     # Logic to group smaller segments for Pie Chart
-                    if len(plot_data_df) > 10:
-                        top_9 = plot_data_df.nlargest(9, 'Total Revenue')
-                        others_val = plot_data_df.nsmallest(len(plot_data_df) - 9, 'Total Revenue')['Total Revenue'].sum()
+                    if len(pie_plot_df) > 10:
+                        top_9 = pie_plot_df.nlargest(9, 'Total Revenue')
+                        others_val = pie_plot_df.nsmallest(len(pie_plot_df) - 9, 'Total Revenue')['Total Revenue'].sum()
                         others_row = pd.DataFrame({'State': ['OTHERS'], 'Order Count': [0], 'Total Revenue': [others_val]})
-                        plot_data_df = pd.concat([top_9, others_row])
+                        pie_plot_df = pd.concat([top_9, others_row])
                     
                     fig = px.pie(
-                        plot_data_df, 
+                        pie_plot_df, 
                         values='Total Revenue', 
                         names='State',
                         hole=0.4,
                         color_discrete_sequence=px.colors.sequential.RdBu
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                elif "Treemap" in chart_type:
-                    fig = px.treemap(
-                        plot_data_df, 
-                        path=['State'], 
-                        values='Total Revenue',
-                        color='Total Revenue',
-                        color_continuous_scale='Greens'
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
