@@ -338,7 +338,7 @@ def main():
 
             # Raw Data Expander
             with st.expander("View Raw Data Frame"):
-                st.dataframe(df.head(100))
+                st.dataframe(df)
                 
             # Column Types
             with st.expander("View Column Info"):
