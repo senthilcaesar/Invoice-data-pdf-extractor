@@ -378,9 +378,10 @@ def main():
             ]
             
             state_analysis = df.groupby('State').agg({
-                'Invoice Value': ['count', 'sum']
+                'Invoice Value': ['count', 'sum'],
+                'Profit': 'sum'
             }).round(2)
-            state_analysis.columns = ['Order Count', 'Total Revenue']
+            state_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit']
             
             # Reindex to include all states and fill with 0
             state_analysis = state_analysis.reindex(all_india_states).fillna(0)
@@ -416,7 +417,7 @@ def main():
                         locations='State',
                         color='Order Count',
                         hover_name='State',
-                        hover_data={'Order Count': True, 'Total Revenue': ':₹,.2f'},
+                        hover_data={'Order Count': True, 'Total Revenue': ':₹,.2f', 'Total Profit': ':₹,.2f'},
                         color_continuous_scale=px.colors.sequential.Blues,
                         range_color=[0, plot_data_df['Order Count'].max()],
                         labels={'Order Count': 'Orders'}
