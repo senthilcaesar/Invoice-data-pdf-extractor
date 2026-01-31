@@ -377,15 +377,24 @@ def main():
                 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
             ]
             
-            state_analysis = df.groupby('State').agg({
-                'Invoice Value': ['count', 'sum'],
-                'Profit': 'sum'
-            }).round(2)
-            state_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit']
+            state_analysis = df.groupby('State').agg(
+                Orders=('Invoice Value', 'count'),
+                Revenue=('Invoice Value', 'sum'),
+                Items_Sold=('Qty', 'sum'),
+                Profit=('Profit', 'sum')
+            )
             
             # Reindex to include all states and fill with 0
             state_analysis = state_analysis.reindex(all_india_states).fillna(0)
-            state_analysis = state_analysis.sort_values('Total Revenue', ascending=False)
+            
+            # Calculate Avg Order
+            state_analysis['Avg Order (₹)'] = (state_analysis['Revenue'] / state_analysis['Orders']).fillna(0).round(2)
+            
+            # Reorder and Rename columns for display
+            state_analysis = state_analysis[['Orders', 'Revenue', 'Avg Order (₹)', 'Items_Sold', 'Profit']]
+            state_analysis.columns = ['Orders', 'Revenue (₹)', 'Avg Order (₹)', 'Items Sold', 'Profit']
+            
+            state_analysis = state_analysis.sort_values('Revenue (₹)', ascending=False)
 
             col_geo1, col_geo2 = st.columns([1, 1])
             with col_geo1:
@@ -415,12 +424,12 @@ def main():
                         geojson=geojson_url,
                         featureidkey='properties.ST_NM',
                         locations='State',
-                        color='Order Count',
+                        color='Orders',
                         hover_name='State',
-                        hover_data={'Order Count': True, 'Total Revenue': ':₹,.2f', 'Total Profit': ':₹,.2f'},
+                        hover_data={'Orders': True, 'Revenue (₹)': ':₹,.2f', 'Profit': ':₹,.2f'},
                         color_continuous_scale=px.colors.sequential.Blues,
-                        range_color=[0, plot_data_df['Order Count'].max()],
-                        labels={'Order Count': 'Orders'}
+                        range_color=[0, plot_data_df['Orders'].max()],
+                        labels={'Orders': 'Orders'}
                     )
                     
                     fig.update_geos(
@@ -446,15 +455,15 @@ def main():
 
                 elif "Bar" in chart_type:
                     # Horizontal Bar Chart - Filter out states with no orders
-                    bar_plot_df = plot_data_df[plot_data_df['Order Count'] > 0].sort_values('Total Revenue', ascending=True)
+                    bar_plot_df = plot_data_df[plot_data_df['Orders'] > 0].sort_values('Revenue (₹)', ascending=True)
                     
                     fig = px.bar(
                         bar_plot_df, 
-                        x='Total Revenue', 
+                        x='Revenue (₹)', 
                         y='State',
                         orientation='h',
                         text_auto='.2s',
-                        color='Total Revenue',
+                        color='Revenue (₹)',
                         color_continuous_scale='Blues'
                     )
                     fig.update_layout(showlegend=False, height=400)
@@ -462,18 +471,18 @@ def main():
                     
                 elif "Pie" in chart_type:
                     # Filter out states with no orders for Pie Chart
-                    pie_plot_df = plot_data_df[plot_data_df['Order Count'] > 0]
+                    pie_plot_df = plot_data_df[plot_data_df['Orders'] > 0]
                     
                     # Logic to group smaller segments for Pie Chart
                     if len(pie_plot_df) > 10:
-                        top_9 = pie_plot_df.nlargest(9, 'Total Revenue')
-                        others_val = pie_plot_df.nsmallest(len(pie_plot_df) - 9, 'Total Revenue')['Total Revenue'].sum()
-                        others_row = pd.DataFrame({'State': ['OTHERS'], 'Order Count': [0], 'Total Revenue': [others_val]})
+                        top_9 = pie_plot_df.nlargest(9, 'Revenue (₹)')
+                        others_val = pie_plot_df.nsmallest(len(pie_plot_df) - 9, 'Revenue (₹)')['Revenue (₹)'].sum()
+                        others_row = pd.DataFrame({'State': ['OTHERS'], 'Orders': [0], 'Revenue (₹)': [others_val]})
                         pie_plot_df = pd.concat([top_9, others_row])
                     
                     fig = px.pie(
                         pie_plot_df, 
-                        values='Total Revenue', 
+                        values='Revenue (₹)', 
                         names='State',
                         hole=0.4,
                         color_discrete_sequence=px.colors.sequential.RdBu
@@ -482,16 +491,19 @@ def main():
 
             # --- 4. TEMPORAL ANALYSIS ---
             st.divider()
-            st.header("4. Temporal Analysis")
+            st.header("4. Monthly sales trend and growth pattern")
 
-            monthly_analysis = df.groupby(['Year', 'Month']).agg({
-                'Invoice Value': ['count', 'sum'],
-                'Profit': 'sum'
-            }).round(2)
-            monthly_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit']
+            monthly_analysis = df.groupby(['Year', 'Month']).agg(
+                Orders=('Invoice Value', 'count'),
+                Revenue=('Invoice Value', 'sum'),
+                Units_Sold=('Qty', 'sum'),
+                Profit=('Profit', 'sum')
+            ).round(2)
+            
+            # Calculate Avg Order
+            monthly_analysis['Avg Order (₹)'] = (monthly_analysis['Revenue'] / monthly_analysis['Orders']).fillna(0).round(2)
             
             # Create labels for display
-            monthly_analysis_display = monthly_analysis.copy()
             month_labels_idx = []
             for idx in monthly_analysis.index:
                 year, month = idx
@@ -499,7 +511,10 @@ def main():
                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                 month_labels_idx.append(f"{month_names[month-1]} {year}")
             
+            # Prepare display dataframe
+            monthly_analysis_display = monthly_analysis[['Orders', 'Revenue', 'Avg Order (₹)', 'Units_Sold', 'Profit']].copy()
             monthly_analysis_display.index = month_labels_idx
+            monthly_analysis_display.columns = ['Orders', 'Revenue (₹)', 'Avg Order (₹)', 'Units Sold', 'Profit']
             
             st.dataframe(monthly_analysis_display, use_container_width=True)
 
@@ -514,12 +529,12 @@ def main():
             fig.add_trace(
                 go.Scatter(
                     x=month_labels_idx,
-                    y=monthly_analysis['Order Count'],
-                    name="Order Count",
+                    y=monthly_analysis['Orders'],
+                    name="Orders",
                     line=dict(color='navy', width=3),
                     marker=dict(size=8),
                     mode='lines+markers+text',
-                    text=[str(int(v)) for v in monthly_analysis['Order Count']],
+                    text=[str(int(v)) for v in monthly_analysis['Orders']],
                     textposition="top center",
                     yaxis='y1'
                 )
@@ -529,12 +544,12 @@ def main():
             fig.add_trace(
                 go.Scatter(
                     x=month_labels_idx,
-                    y=monthly_analysis['Total Revenue'],
-                    name="Total Revenue",
+                    y=monthly_analysis['Revenue'],
+                    name="Revenue",
                     line=dict(color='darkorange', width=3),
                     marker=dict(size=8),
                     mode='lines+markers+text',
-                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Total Revenue']],
+                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Revenue']],
                     textposition="bottom center",
                     yaxis='y2'
                 )
@@ -587,12 +602,12 @@ def main():
             fig_profit.add_trace(
                 go.Scatter(
                     x=month_labels_idx,
-                    y=monthly_analysis['Total Profit'],
+                    y=monthly_analysis['Profit'],
                     name="Monthly Profit",
                     line=dict(color='green', width=4),
                     marker=dict(size=10, symbol='diamond'),
                     mode='lines+markers+text',
-                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Total Profit']],
+                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Profit']],
                     textposition="top center"
                 )
             )
@@ -616,20 +631,29 @@ def main():
             st.divider()
             st.header("7. Product Sales & Profit Performance")
             
-            product_performance = df.groupby('Description').agg({
-                'Qty': 'sum',
-                'Invoice Value': 'sum',
-                'Profit': 'sum'
-            }).reset_index()
+            product_performance = df.groupby('Description').agg(
+                Total_Orders=('Invoice Value', 'count'),
+                Units_Sold=('Qty', 'sum'),
+                Revenue=('Invoice Value', 'sum'),
+                Profit=('Profit', 'sum')
+            ).reset_index()
             
-            # Sort by Quantity descending
-            product_performance = product_performance.sort_values('Qty', ascending=False)
-            product_performance.columns = ['Product Description', 'Total Quantity', 'Total Revenue (₹)', 'Total Profit (₹)']
+            # Sort by Units Sold descending
+            product_performance = product_performance.sort_values('Units_Sold', ascending=False)
+            
+            # Renaming columns for display
+            product_performance.columns = [
+                'Product Name', 
+                'Total Orders', 
+                'Units Sold', 
+                'Revenue (₹)', 
+                'Profit (₹)'
+            ]
             
             # Format currency columns for display
             display_df = product_performance.copy()
-            display_df['Total Revenue (₹)'] = display_df['Total Revenue (₹)'].map('₹{:,.2f}'.format)
-            display_df['Total Profit (₹)'] = display_df['Total Profit (₹)'].map('₹{:,.2f}'.format)
+            display_df['Revenue (₹)'] = display_df['Revenue (₹)'].map('₹{:,.2f}'.format)
+            display_df['Profit (₹)'] = display_df['Profit (₹)'].map('₹{:,.2f}'.format)
             
             st.dataframe(display_df, use_container_width=True, hide_index=True)
 
