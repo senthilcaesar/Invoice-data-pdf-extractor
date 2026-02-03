@@ -720,15 +720,15 @@ def main():
             if "Box Plot" in viz_type:
                 fig_dist = px.box(
                     plot_df, 
-                    y="Profit",
+                    x="Profit", # Changed to x-axis
                     title="Profit Value Distribution (Box Plot)" + (" (Outliers Excluded)" if exclude_outliers else ""),
                     labels={'Profit': 'Profit (₹)'},
                     color_discrete_sequence=['#0e3b5e'],
                     hover_data=plot_df.columns
                 )
-                fig_dist.add_hline(y=mean_profit, line_width=2, line_dash="dash", line_color="#ef4444", 
-                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top left")
-                fig_dist.update_layout(yaxis_title="Profit (₹)", xaxis_title="")
+                fig_dist.add_vline(x=mean_profit, line_width=2, line_dash="dash", line_color="#ef4444", 
+                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top right")
+                fig_dist.update_layout(xaxis_title="Profit (₹)", yaxis_title="")
 
             elif "Histogram" in viz_type:
                 fig_dist = px.histogram(
