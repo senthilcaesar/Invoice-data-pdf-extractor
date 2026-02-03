@@ -627,9 +627,161 @@ def main():
 
             st.plotly_chart(fig_profit, use_container_width=True)
 
-            # --- 7. PRODUCT PERFORMANCE SUMMARY ---
+            # --- 7. PROFIT DISTRIBUTION ANALYSIS ---
             st.divider()
-            st.header("7. Product Sales & Profit Performance")
+            st.header("7. Profit Distribution Analysis")
+            
+            # Layout for controls
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                # Visualization Selector
+                viz_type = st.selectbox(
+                    "Select Visualization Type",
+                    ["Box Plot (Mean & Variance)", "Histogram (Frequency Distribution)", "Violin Plot (Density)", "Cumulative (ECDF)"],
+                    index=0
+                )
+            with c2:
+                # Outlier Toggle
+                st.write("") # Spacer
+                st.write("") # Spacer
+                exclude_outliers = st.checkbox("Exclude Outliers (IQR Method)")
+
+            # Data Processing based on Outlier Selection
+            profit_data = df['Profit']
+            plot_df = df.copy()
+
+            if exclude_outliers:
+                Q1 = profit_data.quantile(0.25)
+                Q3 = profit_data.quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                
+                # Filter data
+                original_count = len(profit_data)
+                profit_data = profit_data[(profit_data >= lower_bound) & (profit_data <= upper_bound)]
+                plot_df = plot_df[(plot_df['Profit'] >= lower_bound) & (plot_df['Profit'] <= upper_bound)]
+                filtered_count = len(profit_data)
+                
+                st.caption(f"Showing {filtered_count} typical orders (Excluded {original_count - filtered_count} outliers).")
+
+            if "Box Plot" in viz_type:
+                st.markdown("""
+                **Understanding Mean & Variance:**
+                - **Mean (Red Line)**: The average profit per order.
+                - **Variance (The Box & Whiskers)**: Shows how spread out your profits are.
+                    - The **Box** holds the middle 50% of orders.
+                    - The **Whiskers** show the range of typical orders.
+                - A wider box/whisker means **higher variance** (less predictable profits).
+                """)
+            elif "Histogram" in viz_type:
+                st.markdown("""
+                **How to read this Histogram:**
+                - **Bars**: Show how many orders fall into each profit range.
+                - **Peak**: The most common profit value range.
+                - **Spread**: How wide the data is distributed around the peak.
+                """)
+            elif "Violin" in viz_type:
+                st.markdown("""
+                **How to read this Violin Plot:**
+                - **Width**: The wider the shape, the more orders have that profit value.
+                - **Shape**: Shows the probability density of the data.
+                - **Internal Box**: Similar to a box plot, shows the median and quartiles.
+                """)
+            elif "Cumulative" in viz_type:
+                 st.markdown("""
+                **How to read this cumulative chart:**
+                - **Y-Axis**: Represents the percentage of orders (0 to 1).
+                - **X-Axis**: Profit value.
+                - **Usage**: Pick a profit value on X, look up to the line, then left to Y to see what % of orders are below that profit.
+                """)
+
+            # Calculate metrics on likely filtered data
+            mean_profit = profit_data.mean()
+            std_profit = profit_data.std()
+            median_profit = profit_data.median()
+            skew_profit = profit_data.skew()
+            cv_profit = (std_profit / mean_profit * 100) if mean_profit != 0 else 0
+            
+            # Key Statistical Metrics
+            m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
+            with m_col1:
+                st.metric("Mean Profit", f"₹{mean_profit:,.2f}")
+            with m_col2:
+                st.metric("Median Profit", f"₹{median_profit:,.2f}")
+            with m_col3:
+                st.metric("Std Deviation", f"₹{std_profit:,.2f}")
+            with m_col4:
+                st.metric("Skewness", f"{skew_profit:.2f}", help="Positive value means a long tail of high-profit orders.")
+            with m_col5:
+                st.metric("Variation (CV)", f"{cv_profit:.1f}%", help="Higher % means less predictable profits.")
+
+            # Dynamic Plotting Logic using plot_df
+            if "Box Plot" in viz_type:
+                fig_dist = px.box(
+                    plot_df, 
+                    y="Profit",
+                    title="Profit Value Distribution (Box Plot)" + (" (Outliers Excluded)" if exclude_outliers else ""),
+                    labels={'Profit': 'Profit (₹)'},
+                    color_discrete_sequence=['#0e3b5e'],
+                    hover_data=plot_df.columns
+                )
+                fig_dist.add_hline(y=mean_profit, line_width=2, line_dash="dash", line_color="#ef4444", 
+                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top left")
+                fig_dist.update_layout(yaxis_title="Profit (₹)", xaxis_title="")
+
+            elif "Histogram" in viz_type:
+                fig_dist = px.histogram(
+                    plot_df, 
+                    x="Profit",
+                    nbins=50,
+                    title="Profit Frequency Distribution" + (" (Outliers Excluded)" if exclude_outliers else ""),
+                    labels={'Profit': 'Profit (₹)'},
+                    color_discrete_sequence=['#0e3b5e'],
+                    opacity=0.7
+                )
+                fig_dist.add_vline(x=mean_profit, line_width=2, line_dash="solid", line_color="#ef4444", 
+                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top right")
+                fig_dist.update_layout(xaxis_title="Profit (₹)", yaxis_title="Count")
+
+            elif "Violin" in viz_type:
+                fig_dist = px.violin(
+                    plot_df, 
+                    y="Profit",
+                    box=True, # Show internal box plot
+                    points=False, # Simplify view
+                    title="Profit Density Distribution" + (" (Outliers Excluded)" if exclude_outliers else ""),
+                    labels={'Profit': 'Profit (₹)'},
+                    color_discrete_sequence=['#0e3b5e']
+                )
+                fig_dist.add_hline(y=mean_profit, line_width=2, line_dash="dash", line_color="#ef4444", 
+                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top left")
+                fig_dist.update_layout(yaxis_title="Profit (₹)", xaxis_title="")
+
+            elif "Cumulative" in viz_type:
+                fig_dist = px.ecdf(
+                    plot_df, 
+                    x="Profit",
+                    title="Cumulative Probability of Profit" + (" (Outliers Excluded)" if exclude_outliers else ""),
+                    labels={'Profit': 'Profit (₹)'},
+                    color_discrete_sequence=['#0e3b5e']
+                )
+                fig_dist.add_vline(x=mean_profit, line_width=2, line_dash="solid", line_color="#ef4444", 
+                                annotation_text=f"Mean: ₹{mean_profit:.0f}", annotation_position="top left")
+                fig_dist.update_layout(xaxis_title="Profit (₹)", yaxis_title="Probability")
+
+            # Common Layout Updates
+            fig_dist.update_layout(
+                template="plotly_white",
+                height=550,
+                margin=dict(t=50, b=50, l=50, r=50)
+            )
+            
+            st.plotly_chart(fig_dist, use_container_width=True)
+
+            # --- 8. PRODUCT PERFORMANCE SUMMARY ---
+            st.divider()
+            st.header("8. Product Sales & Profit Performance")
             
             product_performance = df.groupby('Description').agg(
                 Total_Orders=('Invoice Value', 'count'),
@@ -659,7 +811,7 @@ def main():
 
             # --- 8. MASTER DATA REFERENCE ---
             st.divider()
-            with st.expander("📊 8. Product Cost & Reference Master Data", expanded=False):
+            with st.expander("📊 9. Product Cost & Reference Master Data", expanded=False):
                 st.markdown("""
                 This table shows the unit costs, referral fees, and selling prices used to calculate 
                 the profit margins for each product identified in your invoices.

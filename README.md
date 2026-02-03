@@ -111,7 +111,10 @@ Shipping is **not** a simple flat fee per item. It is calculated dynamically bas
 
 ---
 
-### 2. Practical Example
+### 3. Detailed Analytics Guide
+For a deeper understanding of the statistical visualizations (Box Plots, Histograms, etc.) and the outlier filtering logic (IQR Method) used in the dashboard, please refer to the **[Analytics & Visualization Guide](ANALYTICS_GUIDE.md)**.
+
+---
 
 Let's calculate the profit for an order of **2 units** of **"Amudham Naturals Raw Peanuts, 1kg Pack"**.
 
