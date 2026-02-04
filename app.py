@@ -698,23 +698,35 @@ def main():
 
             # Calculate metrics on likely filtered data
             mean_profit = profit_data.mean()
-            std_profit = profit_data.std()
             median_profit = profit_data.median()
-            skew_profit = profit_data.skew()
-            cv_profit = (std_profit / mean_profit * 100) if mean_profit != 0 else 0
+            mode_profit = profit_data.mode()[0] if not profit_data.mode().empty else 0
+            
+            std_profit = profit_data.std()
+            
+            q1 = profit_data.quantile(0.25)
+            q3 = profit_data.quantile(0.75)
+            iqr_profit = q3 - q1
             
             # Key Statistical Metrics
-            m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
+            st.markdown("##### Key Statistical Metrics")
+            
+            # Row 1: Central Tendency
+            m_col1, m_col2, m_col3 = st.columns(3)
             with m_col1:
-                st.metric("Mean Profit", f"₹{mean_profit:,.2f}")
+                st.metric("Mean Profit", f"₹{mean_profit:,.2f}", help="Average profit per order")
             with m_col2:
-                st.metric("Median Profit", f"₹{median_profit:,.2f}")
+                st.metric("Median Profit", f"₹{median_profit:,.2f}", help="Middle value of profit (50th percentile)")
             with m_col3:
-                st.metric("Std Deviation", f"₹{std_profit:,.2f}")
-            with m_col4:
-                st.metric("Skewness", f"{skew_profit:.2f}", help="Positive value means a long tail of high-profit orders.")
-            with m_col5:
-                st.metric("Variation (CV)", f"{cv_profit:.1f}%", help="Higher % means less predictable profits.")
+                st.metric("Mode Profit", f"₹{mode_profit:,.2f}", help="Most frequent profit value")
+                
+            st.divider()
+            
+            # Row 2: Dispersion & Spread
+            d_col1, d_col2 = st.columns(2)
+            with d_col1:
+                st.metric("Std Deviation", f"₹{std_profit:,.2f}", help="Amount of variation of range of values")
+            with d_col2:
+                st.metric("Interquartile Range (IQR)", f"₹{iqr_profit:,.2f}", help="Range between 25th and 75th percentile (middle 50%)")
 
             # Dynamic Plotting Logic using plot_df
             if "Box Plot" in viz_type:
