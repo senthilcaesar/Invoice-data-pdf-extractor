@@ -225,6 +225,36 @@ def calculate_profit_internal(description, qty):
     
     return round(revenue - base_costs - shipping, 2)
 
+def calculate_expenses_internal(description, qty):
+    """Calculate expenses (purchase + packing) for an order."""
+    if pd.isna(description): return 0
+    try: quantity = int(qty) if not pd.isna(qty) else 1
+    except: quantity = 1
+    
+    description_str = str(description).lower()
+    matched_products = []
+    remaining_desc = description_str
+    sorted_names = sorted(product_costs.keys(), key=len, reverse=True)
+    
+    for name in sorted_names:
+        if name in remaining_desc:
+            # Count how many times this product appears in the string
+            count = remaining_desc.count(name)
+            matched_products.extend([product_costs[name]] * count)
+            # Remove to prevent double-matching with shorter names
+            remaining_desc = remaining_desc.replace(name, " ")
+            
+    if not matched_products: return 0
+    
+    total_purchase = sum(p['purchase'] for p in matched_products)
+    total_packing = sum(p['packing'] for p in matched_products)
+    
+    # Expenses = (purchase + packing) * quantity
+    # Shipping and referral are paid by customer/deducted from revenue, not "out of pocket" expenses in this context
+    expenses = (total_purchase + total_packing) * quantity
+    
+    return round(expenses, 2)
+
 def load_and_process_data(uploaded_file):
     """Load and perform initial cleaning on the data."""
     try:
@@ -283,9 +313,14 @@ def load_and_process_data(uploaded_file):
         else:
             df['State'] = "Unknown"
             
-        # 5. Clean Qty and Calculate Profit
+        # 5. Clean Qty and Calculate Profit and Expenses
         df['Qty'] = pd.to_numeric(df['Qty'], errors='coerce').fillna(1).astype(int)
         df['Profit'] = df.apply(lambda row: calculate_profit_internal(row['Description'], row['Qty']), axis=1)
+        df['Expenses'] = df.apply(lambda row: calculate_expenses_internal(row['Description'], row['Qty']), axis=1)
+        
+        # 6. Calculate Platform Fees (Revenue - Expenses - Profit)
+        # Revenue is 'Invoice Value'
+        df['Platform Fees'] = df['Invoice Value'] - df['Expenses'] - df['Profit']
             
         return df
     except Exception as e:
@@ -497,7 +532,9 @@ def main():
                 Orders=('Invoice Value', 'count'),
                 Revenue=('Invoice Value', 'sum'),
                 Units_Sold=('Qty', 'sum'),
-                Profit=('Profit', 'sum')
+                Profit=('Profit', 'sum'),
+                Expenses=('Expenses', 'sum'),
+                Platform_Fees=('Platform Fees', 'sum')
             ).round(2)
             
             # Calculate Avg Order
@@ -512,9 +549,9 @@ def main():
                 month_labels_idx.append(f"{month_names[month-1]} {year}")
             
             # Prepare display dataframe
-            monthly_analysis_display = monthly_analysis[['Orders', 'Revenue', 'Avg Order (₹)', 'Units_Sold', 'Profit']].copy()
+            monthly_analysis_display = monthly_analysis[['Orders', 'Revenue', 'Avg Order (₹)', 'Units_Sold', 'Expenses', 'Platform_Fees', 'Profit']].copy()
             monthly_analysis_display.index = month_labels_idx
-            monthly_analysis_display.columns = ['Orders', 'Revenue (₹)', 'Avg Order (₹)', 'Units Sold', 'Profit']
+            monthly_analysis_display.columns = ['Orders', 'Revenue (₹)', 'Avg Order (₹)', 'Units Sold', 'Expenses (₹)', 'Platform Fees (₹)', 'Profit']
             
             st.dataframe(monthly_analysis_display, use_container_width=True)
 
@@ -612,13 +649,27 @@ def main():
                 )
             )
 
+            # Line Chart for Expenses
+            fig_profit.add_trace(
+                go.Scatter(
+                    x=month_labels_idx,
+                    y=monthly_analysis['Expenses'],
+                    name="Expenses",
+                    line=dict(color='crimson', width=4),
+                    marker=dict(size=10, symbol='circle'),
+                    mode='lines+markers+text',
+                    text=[f'₹{v:,.0f}' for v in monthly_analysis['Expenses']],
+                    textposition="bottom center"
+                )
+            )
+
             fig_profit.update_layout(
                 template="plotly_white",
-                title=dict(text='Monthly Profit Performance', font=dict(size=20, color='#0e3b5e')),
+                title=dict(text='Monthly Profit & Expenses Trend', font=dict(size=20, color='#0e3b5e')),
                 xaxis=dict(title=dict(text='Month')),
                 yaxis=dict(
-                    title=dict(text='Profit (₹)', font=dict(color='green')),
-                    tickfont=dict(color='green'),
+                    title=dict(text='Amount (₹)', font=dict(color='#0e3b5e')),
+                    tickfont=dict(color='#0e3b5e'),
                     showgrid=True
                 ),
                 hovermode="x unified",
@@ -627,9 +678,61 @@ def main():
 
             st.plotly_chart(fig_profit, use_container_width=True)
 
-            # --- 7. PROFIT DISTRIBUTION ANALYSIS ---
+            # --- 7. MONTHLY REVENUE BREAKDOWN ---
             st.divider()
-            st.header("7. Profit Distribution Analysis")
+            st.header("7. Monthly Revenue Breakdown")
+
+            fig_breakdown = go.Figure()
+
+            # 1. Expenses (Bottom)
+            fig_breakdown.add_trace(go.Bar(
+                x=month_labels_idx,
+                y=monthly_analysis['Expenses'],
+                name='Expenses (Product + Packing)',
+                marker_color='#ef4444' # Red
+            ))
+
+            # 2. Platform Fees (Middle)
+            fig_breakdown.add_trace(go.Bar(
+                x=month_labels_idx,
+                y=monthly_analysis['Platform_Fees'],
+                name='Platform Fees (Shipping + Referral)',
+                marker_color='#f59e0b' # Orange
+            ))
+
+            # 3. Profit (Top)
+            fig_breakdown.add_trace(go.Bar(
+                x=month_labels_idx,
+                y=monthly_analysis['Profit'],
+                name='Net Profit',
+                marker_color='#22c55e' # Green
+            ))
+
+            fig_breakdown.update_layout(
+                barmode='stack',
+                template="plotly_white",
+                title=dict(text='Revenue Breakdown: Where does the money go?', font=dict(size=20, color='#0e3b5e')),
+                xaxis=dict(title=dict(text='Month')),
+                yaxis=dict(
+                    title=dict(text='Total Revenue (₹)', font=dict(color='#0e3b5e')),
+                    showgrid=True
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                height=500,
+                hovermode="x unified"
+            )
+            
+            st.plotly_chart(fig_breakdown, use_container_width=True)
+
+            # --- 8. PROFIT DISTRIBUTION ANALYSIS ---
+            st.divider()
+            st.header("8. Profit Distribution Analysis")
             
             # Layout for controls
             c1, c2 = st.columns([2, 1])
@@ -791,9 +894,9 @@ def main():
             
             st.plotly_chart(fig_dist, use_container_width=True)
 
-            # --- 8. PRODUCT PERFORMANCE SUMMARY ---
+            # --- 9. PRODUCT PERFORMANCE SUMMARY ---
             st.divider()
-            st.header("8. Product Sales & Profit Performance")
+            st.header("9. Product Sales & Profit Performance")
             
             product_performance = df.groupby('Description').agg(
                 Total_Orders=('Invoice Value', 'count'),
