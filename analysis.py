@@ -181,6 +181,33 @@ def calculate_profit(description, qty):
     
     return round(revenue - base_costs - shipping, 2)
 
+def calculate_expenses(description, qty):
+    """Calculate expenses (purchase + packing) for an order."""
+    if pd.isna(description): return 0
+    try: quantity = int(qty) if not pd.isna(qty) else 1
+    except: quantity = 1
+    
+    description_str = str(description).lower()
+    matched_products = []
+    remaining_desc = description_str
+    sorted_names = sorted(product_costs.keys(), key=len, reverse=True)
+    
+    for name in sorted_names:
+        if name in remaining_desc:
+            count = remaining_desc.count(name)
+            matched_products.extend([product_costs[name]] * count)
+            remaining_desc = remaining_desc.replace(name, " ")
+            
+    if not matched_products: return 0
+    
+    total_purchase = sum(p['purchase'] for p in matched_products)
+    total_packing = sum(p['packing'] for p in matched_products)
+    
+    # Expenses = (purchase + packing) * quantity
+    expenses = (total_purchase + total_packing) * quantity
+    
+    return round(expenses, 2)
+
 # Clean Qty column - convert to numeric
 df['Qty'] = pd.to_numeric(df['Qty'], errors='coerce').fillna(1).astype(int)
 print(f"✓ Qty column cleaned and converted to numeric")
@@ -188,6 +215,15 @@ print(f"✓ Qty column cleaned and converted to numeric")
 # Add Profit column using both Description and Qty
 df['Profit'] = df.apply(lambda row: calculate_profit(row['Description'], row['Qty']), axis=1)
 print(f"✓ Profit column added based on product margins and quantities")
+
+# Add Expenses column
+df['Expenses'] = df.apply(lambda row: calculate_expenses(row['Description'], row['Qty']), axis=1)
+print(f"✓ Expenses column added (Purchase + Packing costs)")
+
+# Add Platform Fees column (Revenue - Expenses - Profit)
+# Revenue is 'Invoice Value'
+df['Platform Fees'] = df['Invoice Value'] - df['Expenses'] - df['Profit']
+print(f"✓ Platform Fees column added (Shipping + Tax + Referral)")
 
 
 print("\n\n3. DESCRIPTIVE STATISTICS")
@@ -202,10 +238,12 @@ print("-"*80)
 
 state_analysis = df.groupby('State').agg({
     'Invoice Value': ['count', 'sum'],
-    'Profit': 'sum'
+    'Profit': 'sum',
+    'Expenses': 'sum',
+    'Platform Fees': 'sum'
 }).round(2)
 
-state_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit']
+state_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit', 'Total Expenses', 'Platform Fees']
 state_analysis = state_analysis.sort_values('Total Revenue', ascending=False)
 
 print(f"\nState-wise Performance:")
@@ -217,12 +255,14 @@ print("-"*80)
 product_performance = df.groupby('Description').agg({
     'Qty': 'sum',
     'Invoice Value': 'sum',
-    'Profit': 'sum'
+    'Profit': 'sum',
+    'Expenses': 'sum',
+    'Platform Fees': 'sum'
 }).reset_index()
 
 # Sort by Quantity descending
 product_performance = product_performance.sort_values('Qty', ascending=False)
-product_performance.columns = ['Product Description', 'Total Quantity', 'Total Revenue (₹)', 'Total Profit (₹)']
+product_performance.columns = ['Product Description', 'Total Quantity', 'Total Revenue (₹)', 'Total Profit (₹)', 'Total Expenses (₹)', 'Fees (Ship+Tax+Ref) (₹)']
 
 print(f"\nProduct-wise Performance Summary:")
 print(product_performance.to_string(index=False))
@@ -233,9 +273,11 @@ print("-"*80)
 # Monthly trend
 monthly_analysis = df.groupby(['Year', 'Month']).agg({
     'Invoice Value': ['count', 'sum'],
-    'Profit': 'sum'
+    'Profit': 'sum',
+    'Expenses': 'sum',
+    'Platform Fees': 'sum'
 }).round(2)
-monthly_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit']
+monthly_analysis.columns = ['Order Count', 'Total Revenue', 'Total Profit', 'Total Expenses', 'Platform Fees']
 
 print(f"\nMonthly Trend:")
 print(monthly_analysis)

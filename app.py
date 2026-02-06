@@ -371,6 +371,17 @@ def main():
             with col4:
                 st.metric("Total Columns", len(df.columns))
 
+            # Calculation Methodology Reference
+            with st.expander("ℹ️ Understanding the Business Metrics (Calculation Logic)", expanded=True):
+                st.markdown("""
+                | Category | What it represents | Items Included |
+                | :--- | :--- | :--- |
+                | **🛍️ Expenses** | Your direct sourcing/out-of-pocket spending | Purchase Cost + Packing Cost |
+                | **📦 Platform Fees** | Total deductions by Amazon / Govt | Shipping Cost + Tax (GST) + Referral Fee |
+                | **💵 Net Profit** | Your actual monthly earnings | Revenue - Expenses - Platform Fees |
+                """)
+                st.info("💡 **Note:** Net Profit is calculated on the pre-tax selling price to accurately isolate tax into the Platform Fees bucket.")
+
             # Raw Data Expander
             with st.expander("View Raw Data Frame"):
                 st.dataframe(df)
@@ -696,7 +707,7 @@ def main():
             fig_breakdown.add_trace(go.Bar(
                 x=month_labels_idx,
                 y=monthly_analysis['Platform_Fees'],
-                name='Platform Fees (Shipping + Referral)',
+                name='Platform Fees (Shipping + Tax + Referral)',
                 marker_color='#f59e0b' # Orange
             ))
 
@@ -902,6 +913,8 @@ def main():
                 Total_Orders=('Invoice Value', 'count'),
                 Units_Sold=('Qty', 'sum'),
                 Revenue=('Invoice Value', 'sum'),
+                Expenses=('Expenses', 'sum'),
+                Platform_Fees=('Platform Fees', 'sum'),
                 Profit=('Profit', 'sum')
             ).reset_index()
             
@@ -914,13 +927,15 @@ def main():
                 'Total Orders', 
                 'Units Sold', 
                 'Revenue (₹)', 
+                'Expenses (₹)', 
+                'Fees (Ship+Tax+Ref) (₹)', 
                 'Profit (₹)'
             ]
             
             # Format currency columns for display
             display_df = product_performance.copy()
-            display_df['Revenue (₹)'] = display_df['Revenue (₹)'].map('₹{:,.2f}'.format)
-            display_df['Profit (₹)'] = display_df['Profit (₹)'].map('₹{:,.2f}'.format)
+            for col in ['Revenue (₹)', 'Expenses (₹)', 'Fees (Ship+Tax+Ref) (₹)', 'Profit (₹)']:
+                display_df[col] = display_df[col].map('₹{:,.2f}'.format)
             
             st.dataframe(display_df, use_container_width=True, hide_index=True)
 
