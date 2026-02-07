@@ -318,7 +318,11 @@ def load_and_process_data(uploaded_file):
         df['Profit'] = df.apply(lambda row: calculate_profit_internal(row['Description'], row['Qty']), axis=1)
         df['Expenses'] = df.apply(lambda row: calculate_expenses_internal(row['Description'], row['Qty']), axis=1)
         
-        # 6. Calculate Platform Fees (Revenue - Expenses - Profit)
+        # 6. Clean Mode of Payment (Nulls treated as Cash on Delivery)
+        if 'Mode of Payment' in df.columns:
+            df['Mode of Payment'] = df['Mode of Payment'].fillna('Cash on Delivery')
+        
+        # 7. Calculate Platform Fees (Revenue - Expenses - Profit)
         # Revenue is 'Invoice Value'
         df['Platform Fees'] = df['Invoice Value'] - df['Expenses'] - df['Profit']
             
@@ -954,5 +958,44 @@ def main():
                         master_display[col] = master_display[col].map('₹{:,.2f}'.format)
                 
                 st.dataframe(master_display, use_container_width=True, hide_index=True)
+
+            # --- 10. PAYMENT METHOD PREFERENCES ---
+            st.divider()
+            st.header("10. Payment Method Preferences")
+
+            # Data Processing
+            if 'Mode of Payment' in df.columns:
+                payment_stats = df['Mode of Payment'].value_counts().reset_index()
+                payment_stats.columns = ['Payment Method', 'Number of Sales']
+                
+                # Most Frequent Method for Metric
+                most_frequent = payment_stats.iloc[0]['Payment Method'] if not payment_stats.empty else "N/A"
+                
+                col_m1, col_m2 = st.columns([1, 2])
+                with col_m1:
+                    st.metric("Top Payment Method", most_frequent)
+                    st.write("") # Spacer
+                    st.dataframe(payment_stats, use_container_width=True, hide_index=True)
+                
+                with col_m2:
+                    fig_payment = px.bar(
+                        payment_stats,
+                        x='Number of Sales',
+                        y='Payment Method',
+                        orientation='h',
+                        color='Number of Sales',
+                        color_continuous_scale='Oranges', # Using Orange to match the theme accent
+                        text_auto=True,
+                        title="Customer Payment Preference Distribution"
+                    )
+                    fig_payment.update_layout(
+                        showlegend=False, 
+                        height=400, 
+                        template="plotly_white",
+                        yaxis={'categoryorder':'total ascending'}
+                    )
+                    st.plotly_chart(fig_payment, use_container_width=True)
+            else:
+                st.warning("Column 'Mode of Payment' not found in the uploaded data.")
 if __name__ == "__main__":
     main()
