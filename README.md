@@ -1,4 +1,4 @@
-# Amazon Invoice Data Extractor & Analytics Dashboard
+# Sales Performance Dashboard
 
 A complete solution for extracting data from Amazon invoice PDFs and visualizing business insights through an interactive web dashboard.
 
@@ -19,7 +19,7 @@ Processes Amazon invoice PDFs in batch and extracts structured data including:
 - Payment Details (Transaction ID, Mode, Date & Time)
 - Shipping Address and Place of Delivery
 
-### 2. Analytics Dashboard (Web App)
+### 2. Sales Performance Dashboard (Web App)
 Upload the extracted CSV to visualize:
 - **Overview Metrics**: Total orders, revenue, data quality
 - **Geographic Analysis**: State-wise revenue with interactive charts (Bar/Pie/Treemap)

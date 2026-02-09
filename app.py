@@ -9,7 +9,7 @@ import math
 
 # Page Configuration
 st.set_page_config(
-    page_title="Amudham Naturals - Analytics",
+    page_title="Sales Performance Dashboard",
     page_icon="📊",
     layout="wide"
 )
@@ -126,10 +126,9 @@ st.markdown("""
 st.markdown("""
 <div class="navbar">
     <div class="navbar-left">
-        <div class="navbar-title">📊 Amudham Naturals</div>
+        <div class="navbar-title">📊 Sales Performance Dashboard</div>
         <div class="navbar-tagline">
-            Turn Amazon invoice data into powerful insights. This application automates data extraction 
-            and provides an interactive dashboard to instantly track growth, geographical demand, and profitability.
+            Basic Data Overview • Regional Performance • Sales trend and growth pattern • Top Product Sales & Profit Performance
         </div>
     </div>
     <div class="navbar-right">

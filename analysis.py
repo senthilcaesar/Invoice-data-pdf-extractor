@@ -346,7 +346,7 @@ df.to_csv("invoice_data_with_profit.csv", index=False)
 #                      edgecolor=color2, linewidth=2))
 
 # Title
-#plt.title('Amudham Naturals - Monthly Orders and Revenue', fontsize=18, fontweight='bold', pad=25)
+#plt.title('Sales Performance Dashboard - Monthly Orders and Revenue', fontsize=18, fontweight='bold', pad=25)
 
 # Legend
 #lines1, labels1 = ax1.get_legend_handles_labels()
@@ -389,7 +389,7 @@ df.to_csv("invoice_data_with_profit.csv", index=False)
 #             bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
 #                      edgecolor='green', linewidth=2))
 
-#plt.title('Amudham Naturals - Monthly Profit Trend', fontsize=18, fontweight='bold', pad=25)
+#plt.title('Sales Performance Dashboard - Monthly Profit Trend', fontsize=18, fontweight='bold', pad=25)
 #ax_p.set_ylim(0, monthly_analysis['Total Profit'].max() * 1.25)
 
 #plt.tight_layout()
