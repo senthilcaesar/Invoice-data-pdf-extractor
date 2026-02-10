@@ -591,6 +591,21 @@ def main():
                 )
             )
 
+            # Line Chart for Units Sold (Primary Y)
+            fig.add_trace(
+                go.Scatter(
+                    x=month_labels_idx,
+                    y=monthly_analysis['Units_Sold'],
+                    name="Units Sold",
+                    line=dict(color='#10b981', width=3, dash='dash'), # Greenish color, dashed line
+                    marker=dict(size=8),
+                    mode='lines+markers+text',
+                    text=[str(int(v)) for v in monthly_analysis['Units_Sold']],
+                    textposition="bottom center",
+                    yaxis='y1'
+                )
+            )
+
             # Line Chart for Revenue (Secondary Y)
             fig.add_trace(
                 go.Scatter(
@@ -601,7 +616,7 @@ def main():
                     marker=dict(size=8),
                     mode='lines+markers+text',
                     text=[f'₹{v:,.0f}' for v in monthly_analysis['Revenue']],
-                    textposition="bottom center",
+                    textposition="top center",
                     yaxis='y2'
                 )
             )
