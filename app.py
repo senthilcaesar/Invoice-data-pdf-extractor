@@ -412,7 +412,7 @@ def main():
 
             # --- 3. GEOGRAPHICAL ANALYSIS ---
             st.divider()
-            st.header("3. Geographical Analysis")
+            st.header("3. Regional Performance")
             
             # All India States and UTs for complete map display
             all_india_states = [
