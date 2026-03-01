@@ -260,8 +260,18 @@ def load_and_process_data(uploaded_file):
         df = pd.read_csv(uploaded_file)
         
         # Data Cleaning Logic from analysis.py
-        # 1. Clean Order Date
-        df['Order Date'] = pd.to_datetime(df['Order Date'], format='%d.%m.%Y', errors='coerce')
+        # 1. Clean Order Date - try multiple formats to handle different CSV sources
+        date_formats = ['%d.%m.%Y', '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y']
+        date_parsed = False
+        for fmt in date_formats:
+            parsed = pd.to_datetime(df['Order Date'], format=fmt, errors='coerce')
+            if parsed.notna().sum() > 0:
+                df['Order Date'] = parsed
+                date_parsed = True
+                break
+        if not date_parsed:
+            # Fallback: let pandas infer the format with dayfirst=True (matching analysis.py convention)
+            df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True, errors='coerce')
         
         # 2. Clean Invoice Value
         # Handle cases where it might be string or mixed
@@ -273,6 +283,9 @@ def load_and_process_data(uploaded_file):
         df['Month'] = df['Order Date'].dt.month
         df['Day'] = df['Order Date'].dt.day
         df['DayOfWeek'] = df['Order Date'].dt.day_name()
+        
+        # Convert Order Date back to original string format for display
+        df['Order Date'] = df['Order Date'].dt.strftime('%d.%m.%Y')
         
         # 4. Clean Place of Delivery
         states_map = {

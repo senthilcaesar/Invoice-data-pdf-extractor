@@ -607,7 +607,7 @@ def process_multiple_pdfs(pdf_files, page_number=2, debug=False):
 def main():
     """Main function."""
     # Configuration
-    directory_path = "/Users/senthilpalanivelu/Desktop/amazon_invoice"  # Change to your directory path
+    directory_path = "/Users/senthilpalanivelu/Desktop/computer/amazon_invoice"  # Change to your directory path
     page_number = 2  # Page to extract from (1-indexed)
     debug_mode = False  # Set to True to see detailed extraction info for each PDF
     
@@ -659,7 +659,7 @@ def main():
     
     # Save all data to CSV
     print("\n" + "="*80)
-    output_file = '/Users/senthilpalanivelu/Desktop/google_analytics/new_invoices.csv'
+    output_file = '/Users/senthilpalanivelu/Desktop/new_invoices.csv'
     save_to_csv(all_data, output_file)
     print(f"\n✓ Processed {len(all_data)} invoice(s)")
     print(f"✓ Results saved to: {output_file}")

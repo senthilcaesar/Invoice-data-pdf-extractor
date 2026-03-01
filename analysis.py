@@ -45,7 +45,7 @@ columns = [
 
 df_data = pd.DataFrame(data, columns=columns)
 
-df = pd.read_csv("all_invoices.csv")
+df = pd.read_csv("/Users/senthilpalanivelu/Desktop/new_invoices.csv")
 
 print("1. BASIC DATA OVERVIEW")
 print("-"*80)
@@ -291,7 +291,7 @@ df.groupby(['Year', 'Month'])['Invoice Value'] \
   .reset_index()
 
 # Save to a specific folder
-df.to_csv("invoice_data_with_profit.csv", index=False)
+df.to_csv("/Users/senthilpalanivelu/Desktop/invoice_data_with_profit.csv", index=False, date_format='%d.%m.%Y')
 
 #import pandas as pd
 #import matplotlib.pyplot as plt
